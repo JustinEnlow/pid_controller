@@ -10,6 +10,7 @@
 
 use std::{ops::{Mul, Div, Add, Sub, Neg}, cmp::{PartialOrd},};
 
+#[derive(Clone, Copy)]
 pub struct PID<T>{
     //set_point: T,
     previous_error: T,
@@ -21,7 +22,7 @@ pub struct PID<T>{
     ///if integral windup prevention is desired, set to reasonable limit. otherwise set to None
     pub integral_limit: Option<T>,
     //should pid output be a field? what if the user is interested in having this value available for some other use?
-    output: Option<T>,
+    pub output: Option<T>,
 }
 
 impl<T> PID<T>
@@ -46,10 +47,6 @@ impl<T> PID<T>
             integral_limit,
             output: None,
         }
-    }
-
-    pub fn output(self: &Self) -> Option<T>{
-        self.output
     }
 
     ///pid algorithm implementation
@@ -117,13 +114,13 @@ impl<T> PID<T>
 fn returns_correct_result_with_f64(){ 
     let mut pid = PID::new(0.0, 100.0, 0.0, 0.0, None);
     pid.calculate(50.0, 0.0, 200.0);
-    assert!((pid.output().unwrap() - 5000.0_f64).abs() < 0.001);
+    assert!((pid.output.unwrap() - 5000.0_f64).abs() < 0.001);
 }
 #[test]
 fn returns_correct_result_with_i32(){
     let mut pid = PID::new(0, 100, 0, 0, None);
     pid.calculate(50, 0, 200);
-    assert!(pid.output().unwrap() == 5000);
+    assert!(pid.output.unwrap() == 5000);
 }
 
 #[test]
