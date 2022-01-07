@@ -8,21 +8,24 @@
 //! to the system to alter its behaviour towards a certain goal.
 
 
+//#![no_std] figure out how to make this use no std features
+
 use std::{ops::{Mul, Div, Add, Sub, Neg}, cmp::{PartialOrd},};
+
+
 
 #[derive(Clone, Copy)]
 pub struct PID<T>{
-    //set_point: T,
     previous_error: T,
     previous_integral: T,
     zero_value: T,
-    pub gain_p: T,
-    pub gain_i: T,
-    pub gain_d: T,
+    gain_p: T,
+    gain_i: T,
+    gain_d: T,
     ///if integral windup prevention is desired, set to reasonable limit. otherwise set to None
-    pub integral_limit: Option<T>,
+    integral_limit: Option<T>,
     //should pid output be a field? what if the user is interested in having this value available for some other use?
-    pub output: Option<T>,
+    output: Option<T>,
 }
 
 impl<T> PID<T>
@@ -35,9 +38,8 @@ impl<T> PID<T>
         + PartialOrd 
         + Copy
 {
-    pub fn new(/*set_point: T,*/ zero_value: T, gain_p: T, gain_i: T, gain_d: T, integral_limit: Option<T>) -> Self{
+    pub fn new(zero_value: T, gain_p: T, gain_i: T, gain_d: T, integral_limit: Option<T>) -> Self{
         Self{
-            //set_point,
             previous_error: zero_value,
             previous_integral: zero_value,
             zero_value,
@@ -88,25 +90,23 @@ impl<T> PID<T>
             }
         }
     }
+
+    pub fn gain_p(self: &Self) -> T{self.gain_p}
+    pub fn set_gain_p(self: &mut Self, value: T){self.gain_p = value}
+
+    pub fn gain_i(self: &Self) -> T{self.gain_i}
+    pub fn set_gain_i(self: &mut Self, value: T){self.gain_i = value}
+
+    pub fn gain_d(self: &Self) -> T{self.gain_d}
+    pub fn set_gain_d(self: &mut Self, value: T){self.gain_d = value}
+
+    pub fn integral_limit(self: &Self) -> Option<T>{self.integral_limit}
+    pub fn set_integral_limit(self: &mut Self, value: T){self.integral_limit = Some(value)}
+
+    pub fn output(self: &Self) -> Option<T>{self.output}
 }
 
 
-//example use case. pilot controlling rocket forward velocity
-//let user_input = 1.0;
-    //let max_velocity = 300.0;
-    //let delta_time = 200.0;
-//
-    //let mut pid = PID::new(0.0, 100.0, 0.0, 0.0, None);
-//
-    //loop{
-    //    let measured_value = current_velocity();
-    //    let corrective_value = pid.calculate(
-    //        user_input * max_velocity, 
-    //        measured_value, 
-    //        delta_time
-    //    );
-    //    engine_input(corrective_value);
-    //}
 
 
 
