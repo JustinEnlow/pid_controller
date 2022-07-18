@@ -24,8 +24,6 @@ pub struct PID<T>{
     gain_d: T,
     ///if integral windup prevention is desired, set to reasonable limit. otherwise set to None
     integral_limit: Option<T>,
-    //should pid output be a field? what if the user is interested in having this value available for some other use?
-    output: Option<T>,
 }
 
 impl<T> PID<T>
@@ -47,7 +45,6 @@ impl<T> PID<T>
             gain_i,
             gain_d,
             integral_limit,
-            output: None,
         }
     }
 
@@ -57,7 +54,7 @@ impl<T> PID<T>
     /// measured_value: the current state of your system
     /// delta_time: the loop rate of your system. can be in seconds, milliseconds, hours, etc. depending on your system.
     /// returns a value that should be fed back to your system to correct it
-    pub fn calculate(self: &mut Self, set_point: T, measured_value: T, delta_time: T) /*-> Result<(), &'static str>*/{
+    pub fn calculate(self: &mut Self, set_point: T, measured_value: T, delta_time: T) -> T{
         match delta_time > self.zero_value{
             true => {
                 //error is how far off we are
@@ -74,20 +71,13 @@ impl<T> PID<T>
                     },
                     None => {},
                 }
-            
-                let output = (error * self.gain_p) + (integral * self.gain_i) + (derivative * self.gain_d);
-            
+                
                 self.previous_error = error;
                 self.previous_integral = integral;
-
-                self.output = Some(output);
                 
-                /*Ok(())*/
+                (error * self.gain_p) + (integral * self.gain_i) + (derivative * self.gain_d)
             },
-            false => {
-                //return Err("delta_time cannot be zero"); //&'static str
-                panic!("delta_time cannot be zero")
-            }
+            false => panic!("delta_time cannot be zero")
         }
     }
 
@@ -103,7 +93,7 @@ impl<T> PID<T>
     pub fn integral_limit(self: &Self) -> Option<T>{self.integral_limit}
     pub fn set_integral_limit(self: &mut Self, value: T){self.integral_limit = Some(value)}
 
-    pub fn output(self: &Self) -> Option<T>{self.output}
+    //pub fn output(self: &Self) -> Option<T>{self.output}
 }
 
 
@@ -113,19 +103,19 @@ impl<T> PID<T>
 #[test]
 fn returns_correct_result_with_f64(){ 
     let mut pid = PID::new(0.0, 100.0, 0.0, 0.0, None);
-    pid.calculate(50.0, 0.0, 200.0);
-    assert!((pid.output.unwrap() - 5000.0_f64).abs() < 0.001);
+    let output = pid.calculate(50.0, 0.0, 200.0);
+    assert!((output/*pid.output.unwrap()*/ - 5000.0_f64).abs() < 0.001);
 }
 #[test]
 fn returns_correct_result_with_i32(){
     let mut pid = PID::new(0, 100, 0, 0, None);
-    pid.calculate(50, 0, 200);
-    assert!(pid.output.unwrap() == 5000);
+    let output = pid.calculate(50, 0, 200);
+    assert!(output/*pid.output.unwrap()*/ == 5000);
 }
 
 #[test]
 #[should_panic]
 fn panic_when_delta_time_0(){
     let mut pid = PID::new(0, 100, 0, 0, None);
-    pid.calculate(50, 0, 0);
+    let _ = pid.calculate(50, 0, 0);
 }
