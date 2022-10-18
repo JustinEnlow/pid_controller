@@ -11,6 +11,7 @@
 //#![no_std] figure out how to make this use no std features
 
 use std::{ops::{Mul, Div, Add, Sub, Neg}, cmp::{PartialOrd},};
+use num;
 
 
 
@@ -18,17 +19,17 @@ use std::{ops::{Mul, Div, Add, Sub, Neg}, cmp::{PartialOrd},};
 pub struct PID<T>{
     previous_error: T,
     previous_integral: T,
-    zero_value: T,
     gain_p: T,
     gain_i: T,
     gain_d: T,
     ///if integral windup prevention is desired, set to reasonable limit. otherwise set to None
     integral_limit: Option<T>,
+    previous_output: T,
 }
 
 impl<T> PID<T>
-    where
-        T: Mul<Output = T>
+    where T: num::Zero
+        + Mul<Output = T>
         + Div<Output = T>
         + Add<Output = T>
         + Sub<Output = T>
@@ -36,15 +37,15 @@ impl<T> PID<T>
         + PartialOrd 
         + Copy
 {
-    pub fn new(zero_value: T, gain_p: T, gain_i: T, gain_d: T, integral_limit: Option<T>) -> Self{
+    pub fn new(gain_p: T, gain_i: T, gain_d: T, integral_limit: Option<T>) -> Self{
         Self{
-            previous_error: zero_value,
-            previous_integral: zero_value,
-            zero_value,
+            previous_error: num::zero(),
+            previous_integral: num::zero(),
             gain_p,
             gain_i,
             gain_d,
             integral_limit,
+            previous_output: num::zero(),
         }
     }
 
@@ -54,9 +55,11 @@ impl<T> PID<T>
     /// measured_value: the current state of your system
     /// delta_time: the loop rate of your system. can be in seconds, milliseconds, hours, etc. depending on your system.
     /// returns a value that should be fed back to your system to correct it
-    pub fn calculate(self: &mut Self, set_point: T, measured_value: T, delta_time: T) -> T/*Result<T, ()>*/{
-        if delta_time <= self.zero_value{
-            panic!("delta time cannot be zero")//return Err(())
+    pub fn calculate(self: &mut Self, set_point: T, measured_value: T, delta_time: T) -> T{
+        if delta_time <= num::zero(){
+            // user is retarded
+            // if no time has passed since previous calculation(dt <= 0), return previously calculated output
+            return self.previous_output
         }
         
         //error is how far off we are
@@ -77,7 +80,11 @@ impl<T> PID<T>
         self.previous_error = error;
         self.previous_integral = integral;
                 
-        /*Ok(*/(error * self.gain_p) + (integral * self.gain_i) + (derivative * self.gain_d)//)
+        let output = (error * self.gain_p) + (integral * self.gain_i) + (derivative * self.gain_d);
+
+        self.previous_output = output;
+
+        output
     }
 
     pub fn gain_p(self: &Self) -> T{self.gain_p}
@@ -99,20 +106,21 @@ impl<T> PID<T>
 
 #[test]
 fn returns_correct_result_with_f64(){ 
-    let mut pid = PID::new(0.0, 100.0, 0.0, 0.0, None);
+    let mut pid: PID<f64> = PID::new(100.0, 0.0, 0.0, None);
     let output = pid.calculate(50.0, 0.0, 200.0);
     assert!((output - 5000.0_f64).abs() < 0.001);
 }
 #[test]
 fn returns_correct_result_with_i32(){
-    let mut pid = PID::new(0, 100, 0, 0, None);
+    let mut pid: PID<i32> = PID::new(100, 0, 0, None);
     let output = pid.calculate(50, 0, 200);
     assert!(output == 5000);
 }
 
 #[test]
-#[should_panic]
+//#[should_panic]
 fn panic_when_delta_time_0(){
-    let mut pid = PID::new(0, 100, 0, 0, None);
-    let _ = pid.calculate(50, 0, 0);
+    let mut pid = PID::new(100, 0, 0, None);
+    //let _ = pid.calculate(50, 0, 0);
+    assert!(pid.calculate(50,0,0) == 0);
 }
